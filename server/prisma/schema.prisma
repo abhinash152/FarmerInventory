@@ -1,0 +1,196 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum UserRole {
+  FARMER
+  CUSTOMER
+}
+
+enum PaymentMethod {
+  ONLINE
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+}
+
+enum TrackingStep {
+  PLACED
+  ACCEPTED
+  PACKED
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+model Farmer {
+  farmer_id      Int       @id @default(autoincrement())
+  full_name      String    @db.VarChar(120)
+  username       String    @unique @db.VarChar(60)
+  password_hash  String    @db.VarChar(255)
+  contact_number String?   @db.VarChar(20)
+  farm_location  String?   @db.VarChar(150)
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+
+  products       Product[]
+  orders         Order[]
+  sales          Sale[]
+  feedbacks      OrderFeedback[]
+  notifications  Notification[]
+
+  @@map("farmers")
+}
+
+model Customer {
+  customer_id    Int       @id @default(autoincrement())
+  customer_name  String    @db.VarChar(120)
+  contact_number String?   @db.VarChar(20)
+  address        String?   @db.VarChar(255)
+  username       String    @unique @db.VarChar(60)
+  password_hash  String    @db.VarChar(255)
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+
+  orders         Order[]
+  sales          Sale[]
+  feedbacks      OrderFeedback[]
+
+  @@map("customers")
+}
+
+model Product {
+  product_id          Int       @id @default(autoincrement())
+  farmer_id           Int
+  product_name        String    @db.VarChar(120)
+  category            String?   @db.VarChar(60)
+  stock_quantity      Int       @default(0)
+  unit                String    @db.VarChar(20)
+  price_per_unit      Decimal   @db.Decimal(10, 2)
+  low_stock_threshold Int?      @default(5)
+  image_url           String?   @db.VarChar(255)
+  created_at          DateTime? @default(now()) @db.Timestamp(0)
+  updated_at          DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  farmer              Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  orders              Order[]
+  sales               Sale[]
+  feedbacks           OrderFeedback[]
+
+  @@index([farmer_id], map: "idx_products_farmer")
+  @@index([product_name], map: "idx_products_name")
+  @@map("products")
+}
+
+model Order {
+  order_id     Int         @id @default(autoincrement())
+  customer_id  Int
+  farmer_id    Int
+  product_id   Int
+  quantity     Int
+  status       OrderStatus @default(PENDING)
+  requested_at DateTime?   @default(now()) @db.Timestamp(0)
+  responded_at DateTime?   @db.Timestamp(0)
+
+  customer     Customer    @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  farmer       Farmer      @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  product      Product     @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  feedback     OrderFeedback?
+  extension    OrderExtension?
+
+  @@index([status], map: "idx_orders_status")
+  @@index([farmer_id], map: "idx_orders_farmer")
+  @@map("orders")
+}
+
+model Sale {
+  sale_id       Int       @id @default(autoincrement())
+  product_id    Int
+  customer_id   Int
+  farmer_id     Int
+  quantity_sold Int
+  total_amount  Decimal   @db.Decimal(10, 2)
+  sale_date     DateTime? @default(now()) @db.Timestamp(0)
+
+  product       Product   @relation(fields: [product_id], references: [product_id])
+  customer      Customer  @relation(fields: [customer_id], references: [customer_id])
+  farmer        Farmer    @relation(fields: [farmer_id], references: [farmer_id])
+
+  @@index([farmer_id], map: "idx_sales_farmer")
+  @@index([sale_date], map: "idx_sales_date")
+  @@map("sales")
+}
+
+model OrderFeedback {
+  feedback_id  Int       @id @default(autoincrement())
+  order_id     Int       @unique
+  customer_id  Int
+  farmer_id    Int
+  product_id   Int
+  rating       Int
+  comment      String?   @db.Text
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+
+  order        Order     @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  customer     Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  farmer       Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  product      Product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("order_feedback")
+}
+
+model OrderExtension {
+  ext_id             Int           @id @default(autoincrement())
+  order_id           Int           @unique
+  payment_method     PaymentMethod @default(COD)
+  payment_status     PaymentStatus @default(PENDING)
+  delivery_pincode   String?       @db.VarChar(10)
+  delivery_fee       Decimal       @default(0.00) @db.Decimal(10, 2)
+  delivery_address   String?       @db.VarChar(255)
+  tracking_step      TrackingStep  @default(PLACED)
+  estimated_delivery String?       @db.VarChar(60)
+
+  order              Order         @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+
+  @@map("order_details_ext")
+}
+
+model ChatMessage {
+  message_id   Int       @id @default(autoincrement())
+  farmer_id    Int
+  customer_id  Int
+  sender_role  UserRole
+  message_text String    @db.Text
+  is_read      Boolean   @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([farmer_id, customer_id], map: "idx_chat_participants")
+  @@map("chat_messages")
+}
+
+model Notification {
+  notification_id Int       @id @default(autoincrement())
+  farmer_id       Int
+  product_id      Int?
+  title           String    @db.VarChar(150)
+  message         String    @db.Text
+  type            String    @default("INFO") @db.VarChar(40)
+  is_read         Boolean   @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+
+  farmer          Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+
+  @@map("notifications")
+}

@@ -1,0 +1,151 @@
+Build a full-stack web application called "FarmerInventory" — a marketplace and
+inventory system connecting farmers and customers. This replaces an old Java
+Swing desktop prototype; keep the same core business logic and data model,
+but the entire experience should feel modern, smooth, and animated.
+
+TECH STACK
+- Frontend: React + TypeScript, Tailwind CSS, Framer Motion for animation,
+  shadcn/ui for base components, Recharts for charts.
+- Backend: Node.js + Express, REST API, TypeScript.
+- Database: MySQL (schema provided below — use it as-is, don't redesign it).
+- Auth: JWT-based sessions, bcrypt password hashing. Two roles: FARMER and
+  CUSTOMER, each with separate signup/login and separate dashboards.
+- ORM: Prisma (generate the schema from the SQL provided).
+
+DATABASE SCHEMA
+[CREATE DATABASE IF NOT EXISTS farmer_inventory_system;
+USE farmer_inventory_system;
+
+CREATE TABLE farmers (
+    farmer_id       INT AUTO_INCREMENT PRIMARY KEY,
+    full_name       VARCHAR(120) NOT NULL,
+    username        VARCHAR(60)  NOT NULL UNIQUE,
+    password_hash   VARCHAR(255) NOT NULL,
+    contact_number  VARCHAR(20),
+    farm_location   VARCHAR(150),
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE customers (
+    customer_id     INT AUTO_INCREMENT PRIMARY KEY,
+    customer_name   VARCHAR(120) NOT NULL,
+    contact_number  VARCHAR(20),
+    address         VARCHAR(255),
+    username        VARCHAR(60)  NOT NULL UNIQUE,
+    password_hash   VARCHAR(255) NOT NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+    product_id          INT AUTO_INCREMENT PRIMARY KEY,
+    farmer_id           INT NOT NULL,
+    product_name        VARCHAR(120) NOT NULL,
+    category            VARCHAR(60),
+    stock_quantity      INT NOT NULL DEFAULT 0,
+    unit                VARCHAR(20) NOT NULL,
+    price_per_unit      DECIMAL(10,2) NOT NULL,
+    low_stock_threshold INT DEFAULT 5,
+    image_url           VARCHAR(255),
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (farmer_id) REFERENCES farmers(farmer_id) ON DELETE CASCADE,
+    INDEX idx_products_farmer (farmer_id),
+    INDEX idx_products_name (product_name)
+);
+
+CREATE TABLE orders (
+    order_id        INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id     INT NOT NULL,
+    farmer_id       INT NOT NULL,
+    product_id      INT NOT NULL,
+    quantity        INT NOT NULL,
+    status          ENUM('PENDING','ACCEPTED','REJECTED') NOT NULL DEFAULT 'PENDING',
+    requested_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at    TIMESTAMP NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
+    FOREIGN KEY (farmer_id)   REFERENCES farmers(farmer_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id)  REFERENCES products(product_id) ON DELETE CASCADE,
+    INDEX idx_orders_status (status),
+    INDEX idx_orders_farmer (farmer_id)
+);
+
+CREATE TABLE sales (
+    sale_id         INT AUTO_INCREMENT PRIMARY KEY,
+    product_id      INT NOT NULL,
+    customer_id     INT NOT NULL,
+    farmer_id       INT NOT NULL,
+    quantity_sold   INT NOT NULL,
+    total_amount    DECIMAL(10,2) NOT NULL,
+    sale_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id)  REFERENCES products(product_id),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (farmer_id)   REFERENCES farmers(farmer_id),
+    INDEX idx_sales_farmer (farmer_id),
+    INDEX idx_sales_date (sale_date)
+);]
+
+CORE FEATURES (from the original app — must all be preserved)
+1. Role selection screen (Farmer / Customer) as the entry point.
+2. Farmer signup/login; Customer signup/login. Separate JWT-protected routes.
+3. Farmer dashboard:
+   - Inventory management: add/edit/delete products, set stock quantity,
+     unit, price per unit, and a low-stock threshold.
+   - Orders inbox: see incoming orders from customers, Accept or Reject each.
+     Accepting an order atomically decrements product stock and creates a
+     sale record; reject just marks the order REJECTED. Reject if stock is
+     insufficient.
+   - Sales history: list of all sales with product, customer, quantity,
+     amount, and date. Totals for revenue and units sold.
+   - Reports: total products, total stock, low-stock alert count and list,
+     total orders by status, revenue trends over time (as a chart).
+4. Customer dashboard:
+   - Browse all products across all farmers, with search and category filter.
+   - Place an order (choose quantity) on any product with sufficient stock.
+   - View their own order history and live status (Pending/Accepted/Rejected).
+
+UI/UX REQUIREMENTS (this is the main upgrade over the old app)
+- Smooth page transitions between routes (fade/slide via Framer Motion).
+- Animated number counters for stats (revenue, stock levels, order counts)
+  that count up/down when values change instead of snapping instantly.
+- Skeleton loading states for every data-fetching view — no blank screens
+  or spinners-only.
+- Toast notifications for every action (order placed, order accepted/rejected,
+  product added, low-stock warning) instead of blocking alert dialogs.
+- A visual low-stock indicator (animated pulsing badge) on any product below
+  its threshold, on both farmer and customer views.
+- Order status changes should animate (e.g. a card sliding from "Pending" to
+  "Accepted" column) rather than just re-rendering a list — consider a
+  Kanban-style board (Pending / Accepted / Rejected columns) for the farmer's
+  order inbox instead of a plain table.
+- Dashboards should use card-based layouts with subtle hover elevation,
+  rounded corners, and a cohesive color palette themed around agriculture
+  (greens/earth tones) with a light and dark mode toggle.
+- Charts (Recharts) for the Reports page should animate in on load.
+- Fully responsive: works on desktop and mobile.
+- Replace the old hand-painted "handshake" splash graphic with an animated
+  SVG or Lottie-style handshake/illustration on the landing/role-selection
+  screen as a signature visual moment for the app.
+
+UNIQUE FEATURES TO ADD (beyond the original app)
+- Real-time low-stock email or in-app notification for farmers when a
+  product crosses its threshold.
+- A "quick reorder" button for customers on past orders.
+- Farmer analytics: best-selling products, busiest days, a simple revenue
+  forecast chart.
+- Global search across products from the customer dashboard with instant
+  (debounced) filtering, animated result list.
+- Order rating/feedback (1-5 stars + optional comment) customers leave after
+  an order is accepted, visible to the farmer.
+
+BUILD ORDER (please plan in this order)
+1. Scaffold backend: Express + Prisma + the schema above, with auth routes.
+2. Scaffold frontend: routing, layout shell, theme (light/dark), auth pages.
+3. Farmer inventory CRUD (API + UI) with animations.
+4. Order flow end-to-end (customer places → farmer accept/reject → stock/sale
+   update) with the Kanban board and toasts.
+5. Reports/analytics page with animated charts.
+6. Polish pass: skeleton loaders, page transitions, low-stock pulsing badges,
+   the landing page hero animation, responsive check.
+
+Please generate an implementation plan first before writing code, and flag
+any part of this spec that needs clarification before you start.
