@@ -3,17 +3,19 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Cleaning existing data in farmer_inventory_system...');
-  await prisma.notification.deleteMany();
-  await prisma.chatMessage.deleteMany();
-  await prisma.orderFeedback.deleteMany();
-  await prisma.orderExtension.deleteMany();
-  await prisma.sale.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.farmer.deleteMany();
-  await prisma.customer.deleteMany();
+export async function seedDatabase(cleanExisting = true) {
+  if (cleanExisting) {
+    console.log('🌱 Cleaning existing data in farmer_inventory_system...');
+    await prisma.notification.deleteMany();
+    await prisma.chatMessage.deleteMany();
+    await prisma.orderFeedback.deleteMany();
+    await prisma.orderExtension.deleteMany();
+    await prisma.sale.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.farmer.deleteMany();
+    await prisma.customer.deleteMany();
+  }
 
   const hashedPw = await bcrypt.hash('password123', 10);
 
@@ -296,11 +298,13 @@ async function main() {
   console.log('✅ Seeding completed successfully!');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Seeding error:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedDatabase()
+    .catch((e) => {
+      console.error('❌ Seeding error:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

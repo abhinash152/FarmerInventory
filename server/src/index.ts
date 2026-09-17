@@ -32,11 +32,24 @@ app.use('/api/tools', toolRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+import { prisma } from './prisma';
+import { seedDatabase } from './seed';
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'FarmerInventory Backend', timestamp: new Date() });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🌾 FarmerInventory Server running on port ${PORT}`);
+  try {
+    const productCount = await prisma.product.count();
+    if (productCount === 0) {
+      console.log('🌱 Cloud database is empty. Auto-seeding initial harvest demo data...');
+      await seedDatabase(false);
+      console.log('✅ Initial seed completed successfully!');
+    }
+  } catch (error) {
+    console.error('Database connection/sync warning:', error);
+  }
 });
