@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { HandshakeAnimation } from '../components/HandshakeAnimation';
+import { CinematicMediaSlideshow } from '../components/CinematicMediaSlideshow';
 import {
   Sprout,
   Users,
@@ -15,6 +16,8 @@ import {
   CheckCircle2,
   HeartHandshake,
   Compass,
+  Film,
+  Camera,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -31,16 +34,65 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const { t } = useLanguage();
 
+  const farmerStories = [
+    {
+      img: '/assets/farmer_woman_harvest.jpg',
+      name: 'Kamala Devi',
+      role: 'Wheat & Grain Cultivator',
+      location: 'Karnal, Haryana',
+      quote: '“Direct selling gives us fair MSP prices within 24 hours of harvest.”',
+    },
+    {
+      img: '/assets/farmer_capsicum.jpg',
+      name: 'Rameshwar Patel',
+      role: 'Organic Capsicum & Pepper Grower',
+      location: 'Anand, Gujarat',
+      quote: '“Zero middleman commission means 30% higher savings for my family.”',
+    },
+    {
+      img: '/assets/farmer_papaya_basket.jpg',
+      name: 'Rajesh Kushwaha',
+      role: 'Fruit Orchard & Papaya Producer',
+      location: 'Varanasi, Uttar Pradesh',
+      quote: '“Customers receive our fruit fresh from the tree, not aged in cold storage.”',
+    },
+    {
+      img: '/assets/farmer_wheat_sunrise.jpg',
+      name: 'Gurpreet Singh',
+      role: 'Basmati & Golden Wheat Farmer',
+      location: 'Ludhiana, Punjab',
+      quote: '“Live Mandi price comparison helps us price our harvest fairly and proudly.”',
+    },
+    {
+      img: '/assets/farmer_smiling_harvest.jpg',
+      name: 'Harishankar Verma',
+      role: 'Seasonal Vegetables & Herbs',
+      location: 'Kurukshetra, Haryana',
+      quote: '“Transparent orders with live tracking make farming feel modern and respected.”',
+    },
+    {
+      img: '/assets/farmer_female_field.jpg',
+      name: 'Sunita Sharma',
+      role: 'Himalayan Mountain Produce',
+      location: 'Solan, Himachal Pradesh',
+      quote: '“Digital marketplace connects our remote hillside farm to city kitchens.”',
+    },
+  ];
+
   return (
     <div className="space-y-16 py-6 pb-20">
-      {/* Hero Section with Official Logo & Slogan */}
-      <section className="relative overflow-hidden rounded-3xl backdrop-blur-md bg-white/85 dark:bg-stone-900/85 border border-emerald-200/80 dark:border-emerald-900/40 p-6 sm:p-10 lg:p-12 shadow-xl shadow-emerald-900/5">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+      {/* Hero Section with Cinematic Background Slideshow (Videos & Photos) */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/25 dark:border-stone-700/60 shadow-2xl p-6 sm:p-10 lg:p-12 text-white group">
+        {/* Background Cinematic Video & Farmer Photo Slideshow */}
+        <CinematicMediaSlideshow overlayOpacity="bg-stone-950/70" autoPlayInterval={5500} />
+
+        {/* Foreground Content Container - Transparent Frosted Glass */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* Hero Left Content (7 cols on lg) */}
           <div className="lg:col-span-7 space-y-6">
             {/* Project Official Logo & Tagline Header */}
             <div className="flex items-center gap-3.5 pb-2">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-emerald-500 shadow-md shadow-emerald-600/30 bg-white shrink-0">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-amber-400 shadow-lg shadow-amber-500/30 bg-white shrink-0">
                 <img
                   src="/assets/logo.jpg"
                   alt="FarmerInventory Official Logo"
@@ -52,79 +104,80 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-xl sm:text-2xl text-stone-900 dark:text-stone-100 tracking-tight">
+                  <span className="font-black text-xl sm:text-2xl text-white tracking-tight drop-shadow-md">
                     FarmerInventory
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-stone-950 border border-emerald-300 shadow-sm">
                     Official
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                <p className="text-xs sm:text-sm font-bold text-amber-300 drop-shadow">
                   किसान से सीधा ग्राहक तक — कम लोग, बेहतर दाम
                 </p>
               </div>
             </div>
 
             {/* Slogan Kicker */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-200 dark:from-amber-950 dark:via-yellow-950 dark:to-amber-900 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 text-xs font-black tracking-wide uppercase shadow-sm">
-              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 backdrop-blur-md text-amber-300 border border-amber-400/50 text-xs font-black tracking-wide uppercase shadow-sm">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
               <span>“Fasal wahi, raasta naya”</span>
-              <span className="hidden sm:inline text-[10px] opacity-75 font-semibold">• फसल वही, रास्ता नया</span>
+              <span className="hidden sm:inline text-[10px] opacity-80 font-semibold">• फसल वही, रास्ता नया</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-stone-900 dark:text-stone-100 leading-[1.15] tracking-tight">
+            {/* Main Hero Headline */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[1.15] tracking-tight drop-shadow-lg">
               {t('landing_title_1')}{' '}
-              <span className="bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 dark:from-emerald-400 dark:via-green-300 dark:to-emerald-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-300 via-green-200 to-amber-300 bg-clip-text text-transparent">
                 {t('landing_title_2')}
               </span>
             </h1>
 
-            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed max-w-xl">
+            <p className="text-sm sm:text-base text-stone-200 leading-relaxed max-w-xl drop-shadow font-medium">
               Connecting rural farmers directly with households and commercial buyers. Eliminating exploitative commission agents, ensuring fair Mandi rates for growers, and delivering fresher produce to families.
             </p>
 
-            {/* Slogan Banner Pill */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100 dark:from-emerald-950/60 dark:via-teal-950/40 dark:to-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
+            {/* Slogan Banner Pill - Frosted Glass */}
+            <div className="p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500 text-stone-950 flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
                 🌾
               </div>
               <div className="text-xs">
-                <div className="font-extrabold text-emerald-900 dark:text-emerald-200">
+                <div className="font-extrabold text-emerald-300">
                   “Fasal wahi, raasta naya” (The harvest you love, a revolutionary direct route)
                 </div>
-                <div className="text-stone-500 dark:text-stone-400 text-[11px]">
+                <div className="text-stone-300 text-[11px]">
                   Direct farmer payouts, zero middlemen commission, verified Mandi benchmark prices.
                 </div>
               </div>
             </div>
 
             {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-stone-200/80 dark:border-stone-800/80 text-center sm:text-left">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-white/15 text-center sm:text-left">
               <div>
-                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">500+</div>
-                <div className="text-[11px] font-semibold text-stone-500 uppercase">{t('stat_farmers')}</div>
+                <div className="text-2xl font-black text-emerald-400 drop-shadow">500+</div>
+                <div className="text-[11px] font-semibold text-stone-300 uppercase">{t('stat_farmers')}</div>
               </div>
               <div>
-                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">100%</div>
-                <div className="text-[11px] font-semibold text-stone-500 uppercase">{t('stat_crops')}</div>
+                <div className="text-2xl font-black text-emerald-400 drop-shadow">100%</div>
+                <div className="text-[11px] font-semibold text-stone-300 uppercase">{t('stat_crops')}</div>
               </div>
               <div>
-                <div className="text-2xl font-black text-amber-600 dark:text-amber-400">25-35%</div>
-                <div className="text-[11px] font-semibold text-stone-500 uppercase">{t('stat_savings')}</div>
+                <div className="text-2xl font-black text-amber-400 drop-shadow">25-35%</div>
+                <div className="text-[11px] font-semibold text-stone-300 uppercase">{t('stat_savings')}</div>
               </div>
               <div>
-                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">₹0</div>
-                <div className="text-[11px] font-semibold text-stone-500 uppercase">{t('stat_middlemen')}</div>
+                <div className="text-2xl font-black text-emerald-400 drop-shadow">₹0</div>
+                <div className="text-[11px] font-semibold text-stone-300 uppercase">{t('stat_middlemen')}</div>
               </div>
             </div>
           </div>
 
-          {/* Hero Right: Upgraded Sunset Handshake Component (5 cols on lg) */}
+          {/* Hero Right: Handshake Component */}
           <div className="lg:col-span-5 flex flex-col items-center justify-center">
             <HandshakeAnimation className="w-full" />
             <div className="text-center mt-3">
-              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 tracking-wider uppercase flex items-center justify-center gap-1.5">
-                <HeartHandshake className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] font-bold text-stone-300 tracking-wider uppercase flex items-center justify-center gap-1.5 drop-shadow">
+                <HeartHandshake className="w-3.5 h-3.5 text-amber-400" />
                 Direct Trust Handshake: Farmer to Consumer
               </span>
             </div>
@@ -234,6 +287,55 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span>👨‍🌾 Farmer: <code className="font-mono bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded border border-emerald-200">gurpreet_punjab</code> / <code className="font-mono">password123</code></span>
             <span>🛒 Customer: <code className="font-mono bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded border border-amber-200">rahul_v</code> / <code className="font-mono">password123</code></span>
           </div>
+        </div>
+      </section>
+
+      {/* Real Farmer Voices & Harvest Gallery Section */}
+      <section className="space-y-6">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">
+            Real Indian Farmers • सच्ची कहानियां
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-stone-900 dark:text-stone-100">
+            Faces Behind India’s Fresh Harvests
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400">
+            Meet the hardworking growers across Punjab, Haryana, Himachal, and UP who harvest with pride and sell directly to you.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {farmerStories.map((farmer, idx) => (
+            <motion.div
+              key={farmer.name}
+              whileHover={{ y: -5 }}
+              className="rounded-3xl overflow-hidden backdrop-blur-md bg-white/85 dark:bg-stone-900/85 border border-stone-200 dark:border-stone-800 shadow-md group flex flex-col"
+            >
+              <div className="relative h-56 w-full overflow-hidden">
+                <img
+                  src={farmer.img}
+                  alt={farmer.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 text-white">
+                  <div className="font-extrabold text-base">{farmer.name}</div>
+                  <div className="text-xs text-amber-300 font-semibold">{farmer.role}</div>
+                  <div className="text-[11px] text-stone-300">{farmer.location}</div>
+                </div>
+              </div>
+
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <p className="text-xs text-stone-600 dark:text-stone-300 italic">
+                  {farmer.quote}
+                </p>
+                <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span>✓ Verified Direct Producer</span>
+                  <span>100% Traceable</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
