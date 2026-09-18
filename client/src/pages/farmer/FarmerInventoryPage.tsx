@@ -17,10 +17,11 @@ import {
   TrendingUp,
   X,
   Sparkles,
+  Scale,
 } from 'lucide-react';
 
 export const FarmerInventoryPage: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { success, error } = useToast();
   const { t } = useLanguage();
 
@@ -43,6 +44,10 @@ export const FarmerInventoryPage: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Mandi Price Recommendation State
+  const [mandiRecommendation, setMandiRecommendation] = useState<any>(null);
+  const [isFetchingRec, setIsFetchingRec] = useState(false);
+
   const fetchInventory = async () => {
     if (!token) return;
     try {
@@ -63,6 +68,49 @@ export const FarmerInventoryPage: React.FC = () => {
   useEffect(() => {
     fetchInventory();
   }, [token]);
+
+  // Dynamically fetch live Mandi benchmark and price recommendation
+  useEffect(() => {
+    if (!isModalOpen) {
+      setMandiRecommendation(null);
+      return;
+    }
+    const queryTerm = productName.trim() || category;
+    if (!queryTerm) return;
+
+    // Detect farmer state
+    let farmerState = '';
+    if (user?.farm_location) {
+      const loc = user.farm_location.toLowerCase();
+      if (loc.includes('punjab')) farmerState = 'Punjab';
+      else if (loc.includes('haryana')) farmerState = 'Haryana';
+      else if (loc.includes('himachal')) farmerState = 'Himachal Pradesh';
+      else if (loc.includes('uttar pradesh') || loc.includes('up')) farmerState = 'Uttar Pradesh';
+      else if (loc.includes('maharashtra')) farmerState = 'Maharashtra';
+      else if (loc.includes('gujarat')) farmerState = 'Gujarat';
+    }
+
+    const timer = setTimeout(async () => {
+      setIsFetchingRec(true);
+      try {
+        const params = new URLSearchParams({ crop: queryTerm });
+        if (farmerState) params.append('state', farmerState);
+        const res = await fetch(`/api/tools/mandi-benchmarks?${params.toString()}`);
+        const data = await res.json();
+        if (data.success && data.recommendation) {
+          setMandiRecommendation(data.recommendation);
+        } else {
+          setMandiRecommendation(null);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsFetchingRec(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [productName, category, isModalOpen, user?.farm_location]);
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -516,6 +564,56 @@ export const FarmerInventoryPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Live State Mandi Price Recommendation Card */}
+              {mandiRecommendation && (
+                <div className="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/80 space-y-2.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 dark:text-amber-200">
+                      <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Govt Mandi Benchmark Recommendation</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                      {mandiRecommendation.state} Mandi
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="p-2 rounded-xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700">
+                      <div className="text-[10px] text-stone-400 font-semibold">APMC Wholesale</div>
+                      <div className="font-extrabold text-stone-800 dark:text-stone-200">
+                        ₹{mandiRecommendation.apmc_wholesale_rate}/{mandiRecommendation.unit}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700">
+                      <div className="text-[10px] text-stone-400 font-semibold">{mandiRecommendation.govt_msp ? 'Govt MSP' : 'City Retail'}</div>
+                      <div className="font-extrabold text-stone-800 dark:text-stone-200">
+                        ₹{mandiRecommendation.govt_msp || mandiRecommendation.retail_supermarket_rate}/{mandiRecommendation.unit}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700">
+                      <div className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">Suggested Direct</div>
+                      <div className="font-black text-emerald-700 dark:text-emerald-300">
+                        ₹{mandiRecommendation.suggested_direct_price}/{mandiRecommendation.unit}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
+                    <span className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">
+                      Recommended: {mandiRecommendation.recommended_markup}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPricePerUnit(Number(mandiRecommendation.suggested_direct_price))}
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-sm flex items-center justify-center gap-1.5 active:scale-95 hover:brightness-105 transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-stone-950" />
+                      <span>1-Click Apply (₹{mandiRecommendation.suggested_direct_price})</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-stone-600 dark:text-stone-300">

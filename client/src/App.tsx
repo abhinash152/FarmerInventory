@@ -8,6 +8,7 @@ import { LandingPage } from './pages/LandingPage';
 import { AuthModal } from './pages/AuthModal';
 import { AIChatbotModal } from './components/AIChatbotModal';
 import { MandiPriceModal } from './components/MandiPriceModal';
+import { AnimatedSkyBackground } from './components/AnimatedSkyBackground';
 
 // Farmer Pages
 import { FarmerInventoryPage } from './pages/farmer/FarmerInventoryPage';
@@ -52,7 +53,10 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 transition-colors duration-200 selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen relative flex flex-col bg-sky-50/40 dark:bg-slate-950 text-stone-900 dark:text-stone-100 transition-colors duration-200 selection:bg-emerald-500 selection:text-white overflow-x-hidden">
+      {/* Dynamic Animated Sky Background: Sun & Drifting Clouds */}
+      <AnimatedSkyBackground />
+
       {/* Top Navbar */}
       <Navbar
         onOpenAI={() => setIsAIOpen(true)}
@@ -62,7 +66,7 @@ const MainApp: React.FC = () => {
       />
 
       {/* Main Page Area with Framer Motion Page Transition */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <AnimatePresence mode="wait">
           {activeTab === 'home' && (
             <motion.div
@@ -189,7 +193,7 @@ const MainApp: React.FC = () => {
       {isMandiOpen && <MandiPriceModal onClose={() => setIsMandiOpen(false)} />}
 
       {/* Footer */}
-      <footer className="border-t border-stone-200/80 dark:border-stone-800/80 bg-white/50 dark:bg-stone-900/50 backdrop-blur-md py-6 text-center text-xs text-stone-500">
+      <footer className="relative z-10 border-t border-stone-200/80 dark:border-stone-800/80 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md py-6 text-center text-xs text-stone-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400">
             <span>🌾 FarmerInventory</span>

@@ -6,6 +6,7 @@ import { Order } from '../../types';
 import { SkeletonCard } from '../../components/SkeletonLoaders';
 import { LiveTrackingModal } from '../../components/LiveTrackingModal';
 import { FeedbackModal } from '../../components/FeedbackModal';
+import { ComplaintModal } from '../../components/ComplaintModal';
 import { ChatDrawer } from '../../components/ChatDrawer';
 import {
   Package,
@@ -21,6 +22,7 @@ import {
   MapPin,
   RefreshCw,
   ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -36,6 +38,7 @@ export const CustomerOrdersPage: React.FC = () => {
   // Modals
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [feedbackOrder, setFeedbackOrder] = useState<Order | null>(null);
+  const [complaintOrder, setComplaintOrder] = useState<Order | null>(null);
   const [chatTarget, setChatTarget] = useState<{
     farmerId: number;
     name: string;
@@ -279,6 +282,18 @@ export const CustomerOrdersPage: React.FC = () => {
                       </button>
                     )}
 
+                    {/* Report Quality Issue / File Complaint Button */}
+                    {isAccepted && (
+                      <button
+                        onClick={() => setComplaintOrder(order)}
+                        className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/80 text-xs font-bold flex items-center gap-1 transition-colors"
+                        title="Report damaged produce or dispute quality with photo proof"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        <span>Report Issue</span>
+                      </button>
+                    )}
+
                     {order.feedback && (
                       <span className="px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1">
                         <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
@@ -307,6 +322,15 @@ export const CustomerOrdersPage: React.FC = () => {
           order={feedbackOrder}
           onClose={() => setFeedbackOrder(null)}
           onFeedbackSuccess={() => fetchOrders()}
+        />
+      )}
+
+      {/* Quality Dispute / Complaint Modal */}
+      {complaintOrder && (
+        <ComplaintModal
+          order={complaintOrder}
+          onClose={() => setComplaintOrder(null)}
+          onSuccess={() => fetchOrders()}
         />
       )}
 

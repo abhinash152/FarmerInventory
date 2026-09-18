@@ -11,6 +11,7 @@ import feedbackRoutes from './routes/feedbackRoutes';
 import toolRoutes from './routes/toolRoutes';
 import aiRoutes from './routes/aiRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import complaintRoutes from './routes/complaintRoutes';
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -31,6 +32,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/tools', toolRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 import { prisma } from './prisma';
 import { seedDatabase } from './seed';

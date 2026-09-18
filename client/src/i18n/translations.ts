@@ -4,7 +4,9 @@ export const translations = {
   en: {
     // Brand & Roles
     brand: 'FarmerInventory',
-    tagline: 'Direct Farm Marketplace & Smart Inventory System',
+    slogan: 'Fasal wahi, raasta naya',
+    quote: 'Kisaan se seedha Grahak Tak — Kam Log, Behtar Daam',
+    tagline: 'Kisaan se seedha Grahak Tak — Kam Log, Behtar Daam',
     farmer: 'Farmer',
     customer: 'Customer',
     kisan_portal: 'Kisan Portal',
@@ -129,7 +131,9 @@ export const translations = {
   hi: {
     // Brand & Roles
     brand: 'किसान इन्वेंटरी',
-    tagline: 'सीधा किसान बाजार और आधुनिक स्टॉक प्रबंधन',
+    slogan: 'फसल वही, रास्ता नया',
+    quote: 'किसान से सीधा ग्राहक तक — कम लोग, बेहतर दाम',
+    tagline: 'किसान से सीधा ग्राहक तक — कम लोग, बेहतर दाम',
     farmer: 'किसान',
     customer: 'ग्राहक',
     kisan_portal: 'किसान पोर्टल',
@@ -254,7 +258,9 @@ export const translations = {
   pa: {
     // Brand & Roles
     brand: 'ਕਿਸਾਨ ਇਨਵੈਂਟਰੀ',
-    tagline: 'ਸਿੱਧੀ ਕਿਸਾਨ ਮੰਡੀ ਅਤੇ ਸਮਾਰਟ ਸਟਾਕ ਸਿਸਟਮ',
+    slogan: 'ਫਸਲ ਉਹੀ, ਰਸਤਾ ਨਵਾਂ',
+    quote: 'ਕਿਸਾਨ ਤੋਂ ਸਿੱਧਾ ਗਾਹਕ ਤੱਕ — ਘੱਟ ਵਿਚੋਲੇ, ਬਿਹਤਰ ਮੁੱਲ',
+    tagline: 'ਕਿਸਾਨ ਤੋਂ ਸਿੱਧਾ ਗਾਹਕ ਤੱਕ — ਘੱਟ ਵਿਚੋਲੇ, ਬਿਹਤਰ ਮੁੱਲ',
     farmer: 'ਕਿਸਾਨ',
     customer: 'ਗਾਹਕ',
     kisan_portal: 'ਕਿਸਾਨ ਪੋਰਟਲ',

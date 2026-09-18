@@ -88,13 +88,27 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab && setActiveTab('home')}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
-            <Sprout className="w-6 h-6" />
+          <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-500/80 shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0 bg-white flex items-center justify-center">
+            <img
+              src="/assets/logo.jpg"
+              alt="FarmerInventory Logo"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                if (target.parentElement) {
+                  target.parentElement.innerHTML = '<span class="text-xl">🌾</span>';
+                }
+              }}
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-emerald-700 via-green-600 to-emerald-800 dark:from-emerald-400 dark:via-green-300 dark:to-emerald-500 bg-clip-text text-transparent">
                 {t('brand')}
+              </span>
+              <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100/90 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800 tracking-wide">
+                “Fasal wahi, raasta naya”
               </span>
               {user && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
@@ -102,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-stone-500 dark:text-stone-400 hidden sm:block">
+            <p className="text-[10px] text-stone-500 dark:text-stone-400 hidden sm:block font-medium">
               {t('tagline')}
             </p>
           </div>

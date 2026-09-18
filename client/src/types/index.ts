@@ -145,8 +145,30 @@ export interface MandiBenchmark {
   hindi_name: string;
   category: string;
   unit: string;
+  state?: string;
+  mandi_name?: string;
   govt_msp: number | null;
   apmc_mandi_price: number;
   farmer_direct_benchmark: number;
   retail_supermarket_price: number;
 }
+
+export type ComplaintStatus = 'PENDING' | 'INVESTIGATING' | 'RESOLVED';
+
+export interface Complaint {
+  complaint_id: number;
+  order_id: number;
+  customer_id: number;
+  farmer_id: number;
+  product_id: number;
+  issue_type: string;
+  description: string;
+  proof_image?: string | null;
+  status: ComplaintStatus;
+  resolution?: string | null;
+  created_at: string;
+  customer?: { customer_name: string };
+  farmer?: { full_name: string };
+  product?: { product_name: string; unit: string };
+}
+

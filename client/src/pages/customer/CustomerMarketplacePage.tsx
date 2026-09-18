@@ -281,15 +281,31 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
                       <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                         {p.category || 'Farm Produce'}
                       </span>
-                      {p.average_rating && p.average_rating > 0 ? (
-                        <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span>{p.average_rating}</span>
-                          <span className="text-[10px] text-stone-400 font-normal">
-                            ({p.reviews_count})
+                      <div className="flex items-center gap-1.5">
+                        {(p as any).open_complaints_count > 0 && (
+                          <span
+                            title="Recent customer quality dispute filed"
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-0.5"
+                          >
+                            <span>⚠️</span>
+                            <span>Alert</span>
                           </span>
-                        </div>
-                      ) : null}
+                        )}
+                        {p.average_rating && p.average_rating > 0 && p.reviews_count && p.reviews_count > 0 ? (
+                          <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span>{p.average_rating}</span>
+                            <span className="text-[10px] text-stone-400 font-normal">
+                              ({p.reviews_count})
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800 flex items-center gap-1">
+                            <span>🌱</span>
+                            <span>New Grower • Unrated</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <h3 className="font-extrabold text-base text-stone-900 dark:text-stone-100 group-hover:text-emerald-600 transition-colors line-clamp-1">

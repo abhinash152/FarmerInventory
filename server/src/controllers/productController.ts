@@ -58,20 +58,30 @@ export const getPublicProducts = async (req: Request, res: Response) => {
             created_at: true,
           },
         },
+        complaints: {
+          select: {
+            complaint_id: true,
+            status: true,
+            issue_type: true,
+          },
+        },
       },
     });
 
-    const enriched = products.map((p) => {
+    const enriched = products.map((p: any) => {
       const avgRating =
         p.feedbacks.length > 0
-          ? Number((p.feedbacks.reduce((acc, f) => acc + f.rating, 0) / p.feedbacks.length).toFixed(1))
+          ? Number((p.feedbacks.reduce((acc: number, f: any) => acc + f.rating, 0) / p.feedbacks.length).toFixed(1))
           : 0;
+
+      const openComplaints = (p.complaints || []).filter((c: any) => c.status !== 'RESOLVED');
 
       return {
         ...p,
         is_low_stock: p.stock_quantity <= (p.low_stock_threshold ?? 5),
         average_rating: avgRating,
         reviews_count: p.feedbacks.length,
+        open_complaints_count: openComplaints.length,
       };
     });
 
