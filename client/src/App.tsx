@@ -53,7 +53,7 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col bg-sky-50/40 dark:bg-slate-950 text-stone-900 dark:text-stone-100 transition-colors duration-200 selection:bg-emerald-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen relative flex flex-col bg-transparent text-stone-100 selection:bg-emerald-500 selection:text-white overflow-x-hidden">
       {/* Dynamic Animated Sky Background: Sun & Drifting Clouds */}
       <AnimatedSkyBackground />
 
