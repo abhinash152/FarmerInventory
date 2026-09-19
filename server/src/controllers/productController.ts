@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { calculateFreshness } from '../utils/freshnessEngine';
 
 export const getPublicProducts = async (req: Request, res: Response) => {
   try {
@@ -68,7 +69,7 @@ export const getPublicProducts = async (req: Request, res: Response) => {
       },
     });
 
-    const enriched = products.map((p: any) => {
+    let enriched = products.map((p: any) => {
       const avgRating =
         p.feedbacks.length > 0
           ? Number((p.feedbacks.reduce((acc: number, f: any) => acc + f.rating, 0) / p.feedbacks.length).toFixed(1))
@@ -76,14 +77,38 @@ export const getPublicProducts = async (req: Request, res: Response) => {
 
       const openComplaints = (p.complaints || []).filter((c: any) => c.status !== 'RESOLVED');
 
+      const freshness = calculateFreshness(
+        p.harvest_date || p.created_at,
+        p.product_name,
+        p.category || 'General',
+        p.storage_condition || 'FIELD_FRESH',
+        p.farmer?.farm_location || ''
+      );
+
       return {
         ...p,
         is_low_stock: p.stock_quantity <= (p.low_stock_threshold ?? 5),
         average_rating: avgRating,
         reviews_count: p.feedbacks.length,
         open_complaints_count: openComplaints.length,
+        freshness_score: freshness.score,
+        freshness_rating_10: freshness.rating10,
+        freshness_rating_5: freshness.rating5,
+        freshness_tier: freshness.tier,
+        freshness_tier_code: freshness.tierCode,
+        freshness_color: freshness.colorHex,
+        days_since_harvest: freshness.daysSinceHarvest,
+        days_remaining: freshness.daysRemaining,
+        ai_freshness_summary: freshness.aiSummary,
+        storage_condition_label: freshness.storageConditionLabel,
+        harvest_date: p.harvest_date || p.created_at,
+        storage_condition: p.storage_condition || 'FIELD_FRESH',
       };
     });
+
+    if (sort === 'freshness') {
+      enriched = enriched.sort((a: any, b: any) => b.freshness_score - a.freshness_score);
+    }
 
     return res.json({ success: true, count: enriched.length, products: enriched });
   } catch (error: any) {
@@ -126,6 +151,13 @@ export const getFarmerProducts = async (req: AuthenticatedRequest, res: Response
           ? Number((p.feedbacks.reduce((sum, f) => sum + f.rating, 0) / p.feedbacks.length).toFixed(1))
           : 0;
 
+      const freshness = calculateFreshness(
+        p.harvest_date || p.created_at,
+        p.product_name,
+        p.category || 'General',
+        p.storage_condition || 'FIELD_FRESH'
+      );
+
       return {
         ...p,
         is_low_stock: p.stock_quantity <= (p.low_stock_threshold ?? 5),
@@ -133,6 +165,15 @@ export const getFarmerProducts = async (req: AuthenticatedRequest, res: Response
         total_revenue: totalRevenue,
         average_rating: avgRating,
         reviews_count: p.feedbacks.length,
+        freshness_score: freshness.score,
+        freshness_rating_10: freshness.rating10,
+        freshness_tier: freshness.tier,
+        freshness_color: freshness.colorHex,
+        days_since_harvest: freshness.daysSinceHarvest,
+        days_remaining: freshness.daysRemaining,
+        ai_freshness_summary: freshness.aiSummary,
+        harvest_date: p.harvest_date || p.created_at,
+        storage_condition: p.storage_condition || 'FIELD_FRESH',
       };
     });
 
@@ -156,6 +197,8 @@ export const addProduct = async (req: AuthenticatedRequest, res: Response) => {
       price_per_unit,
       low_stock_threshold,
       image_url,
+      harvest_date,
+      storage_condition,
     } = req.body;
 
     if (!product_name || stock_quantity === undefined || !unit || price_per_unit === undefined) {
@@ -175,6 +218,8 @@ export const addProduct = async (req: AuthenticatedRequest, res: Response) => {
         price_per_unit: Number(price_per_unit),
         low_stock_threshold: low_stock_threshold !== undefined ? Number(low_stock_threshold) : 5,
         image_url: image_url || null,
+        harvest_date: harvest_date ? new Date(harvest_date) : new Date(),
+        storage_condition: storage_condition || 'FIELD_FRESH',
       },
     });
 
@@ -223,6 +268,8 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       price_per_unit,
       low_stock_threshold,
       image_url,
+      harvest_date,
+      storage_condition,
     } = req.body;
 
     const updated = await prisma.product.update({
@@ -235,6 +282,8 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
         ...(price_per_unit !== undefined && { price_per_unit: Number(price_per_unit) }),
         ...(low_stock_threshold !== undefined && { low_stock_threshold: Number(low_stock_threshold) }),
         ...(image_url !== undefined && { image_url }),
+        ...(harvest_date !== undefined && { harvest_date: harvest_date ? new Date(harvest_date) : null }),
+        ...(storage_condition !== undefined && { storage_condition }),
       },
     });
 

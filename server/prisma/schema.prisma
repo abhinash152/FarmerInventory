@@ -82,6 +82,8 @@ model Product {
   price_per_unit      Decimal   @db.Decimal(10, 2)
   low_stock_threshold Int?      @default(5)
   image_url           String?   @db.VarChar(255)
+  harvest_date        DateTime? @db.Timestamp(0)
+  storage_condition   String?   @db.VarChar(60)
   created_at          DateTime? @default(now()) @db.Timestamp(0)
   updated_at          DateTime? @default(now()) @updatedAt @db.Timestamp(0)
 

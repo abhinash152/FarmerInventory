@@ -7,6 +7,7 @@ import { PulsingBadge } from '../../components/PulsingBadge';
 import { SkeletonCard } from '../../components/SkeletonLoaders';
 import { OrderModal } from '../../components/OrderModal';
 import { ChatDrawer } from '../../components/ChatDrawer';
+import { FreshnessMeter } from '../../components/FreshnessMeter';
 import {
   Search,
   MapPin,
@@ -41,6 +42,7 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [stateFilter, setStateFilter] = useState('ALL');
+  const [sortFilter, setSortFilter] = useState('freshness');
 
   // Active modals
   const [selectedProductForOrder, setSelectedProductForOrder] = useState<Product | null>(null);
@@ -64,6 +66,7 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
       if (debouncedSearch) params.append('q', debouncedSearch);
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter);
       if (stateFilter !== 'ALL') params.append('state', stateFilter);
+      if (sortFilter) params.append('sort', sortFilter);
 
       const res = await fetch(`/api/products?${params.toString()}`);
       const data = await res.json();
@@ -79,7 +82,7 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
 
   useEffect(() => {
     fetchProducts();
-  }, [debouncedSearch, categoryFilter, stateFilter]);
+  }, [debouncedSearch, categoryFilter, stateFilter, sortFilter]);
 
   const categories = [
     { id: 'ALL', label: 'All Harvests' },
@@ -157,9 +160,9 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
 
       {/* Filter and Search Toolbar */}
       <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm">
-          {/* Instant Search input */}
-          <div className="sm:col-span-2 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm">
+          {/* Instant Search input (6 cols) */}
+          <div className="sm:col-span-6 relative">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
             <input
               type="text"
@@ -170,8 +173,8 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
             />
           </div>
 
-          {/* State filter dropdown */}
-          <div>
+          {/* State filter dropdown (3 cols) */}
+          <div className="sm:col-span-3">
             <select
               value={stateFilter}
               onChange={(e) => setStateFilter(e.target.value)}
@@ -182,6 +185,20 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
                   {s.label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* AI Freshness & Price Sort (3 cols) */}
+          <div className="sm:col-span-3">
+            <select
+              value={sortFilter}
+              onChange={(e) => setSortFilter(e.target.value)}
+              className="w-full p-2.5 rounded-xl text-xs border border-emerald-300 dark:border-emerald-700 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            >
+              <option value="freshness">🌿 AI Freshness (Highest First)</option>
+              <option value="price_asc">💰 Price: Low to High</option>
+              <option value="price_desc">📈 Price: High to Low</option>
+              <option value="stock">📦 Stock: Most Available</option>
             </select>
           </div>
         </div>
@@ -325,6 +342,18 @@ export const CustomerMarketplacePage: React.FC<CustomerMarketplacePageProps> = (
                       <strong className="text-stone-800 dark:text-stone-200 font-bold">
                         {p.stock_quantity} {p.unit}
                       </strong>
+                    </div>
+
+                    {/* AI Harvest Freshness Scale & Gradient Meter */}
+                    <div className="pt-2">
+                      <FreshnessMeter
+                        harvestDate={p.harvest_date || p.created_at}
+                        productName={p.product_name}
+                        category={p.category || ''}
+                        storageCondition={p.storage_condition || 'FIELD_FRESH'}
+                        farmLocation={p.farmer?.farm_location || ''}
+                        mode="card"
+                      />
                     </div>
                   </div>
                 </div>

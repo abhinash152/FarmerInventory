@@ -28,6 +28,18 @@ export interface Product {
   total_revenue?: number;
   average_rating?: number;
   reviews_count?: number;
+  harvest_date?: string | null;
+  storage_condition?: string | null;
+  freshness_score?: number;
+  freshness_rating_10?: number;
+  freshness_rating_5?: number;
+  freshness_tier?: string;
+  freshness_tier_code?: 'PEAK' | 'VERY_FRESH' | 'GOOD' | 'MATURING' | 'AGING';
+  freshness_color?: string;
+  days_since_harvest?: number;
+  days_remaining?: number;
+  ai_freshness_summary?: string;
+  storage_condition_label?: string;
   farmer?: {
     farmer_id: number;
     full_name: string;

@@ -53,9 +53,20 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col bg-transparent text-stone-100 selection:bg-emerald-500 selection:text-white overflow-x-hidden">
-      {/* Dynamic Animated Sky Background: Sun & Drifting Clouds */}
-      <AnimatedSkyBackground />
+    <div
+      className={`min-h-screen relative flex flex-col selection:bg-emerald-500 selection:text-white overflow-x-hidden transition-colors duration-300 ${
+        activeTab === 'home'
+          ? 'bg-transparent text-stone-100'
+          : 'bg-slate-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100'
+      }`}
+    >
+      {/* Video & Photo Slideshow Background ONLY on starting landing/login page */}
+      {activeTab === 'home' ? (
+        <AnimatedSkyBackground />
+      ) : (
+        /* Still & Clean Light Theme Background for Dashboard Pages */
+        <div className="fixed inset-0 z-0 pointer-events-none bg-gradient-to-br from-slate-50 via-sky-50/40 to-emerald-50/30 dark:from-stone-950 dark:via-slate-900 dark:to-stone-900" />
+      )}
 
       {/* Top Navbar */}
       <Navbar

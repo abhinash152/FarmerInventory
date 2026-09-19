@@ -81,7 +81,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-stone-200/80 dark:border-stone-800/80 transition-colors">
+    <header
+      className={`sticky top-0 z-40 w-full transition-colors duration-300 ${
+        activeTab === 'home'
+          ? 'glass-panel border-b border-white/20 text-white'
+          : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200/80 dark:border-stone-800/80 shadow-xs text-stone-800 dark:text-stone-100'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo & Tag */}
         <div

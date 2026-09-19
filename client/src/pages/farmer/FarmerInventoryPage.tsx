@@ -6,6 +6,7 @@ import { Product } from '../../types';
 import { PulsingBadge } from '../../components/PulsingBadge';
 import { SkeletonTable } from '../../components/SkeletonLoaders';
 import { AnimatedCounter } from '../../components/AnimatedCounter';
+import { FreshnessMeter } from '../../components/FreshnessMeter';
 import {
   Plus,
   Edit2,
@@ -18,6 +19,8 @@ import {
   X,
   Sparkles,
   Scale,
+  Leaf,
+  Calendar,
 } from 'lucide-react';
 
 export const FarmerInventoryPage: React.FC = () => {
@@ -42,6 +45,8 @@ export const FarmerInventoryPage: React.FC = () => {
   const [pricePerUnit, setPricePerUnit] = useState<number>(30);
   const [threshold, setThreshold] = useState<number>(5);
   const [imageUrl, setImageUrl] = useState('');
+  const [harvestDate, setHarvestDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [storageCondition, setStorageCondition] = useState<string>('FIELD_FRESH');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mandi Price Recommendation State
@@ -121,6 +126,8 @@ export const FarmerInventoryPage: React.FC = () => {
     setPricePerUnit(35);
     setThreshold(5);
     setImageUrl('https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80');
+    setHarvestDate(new Date().toISOString().split('T')[0]);
+    setStorageCondition('FIELD_FRESH');
     setIsModalOpen(true);
   };
 
@@ -133,6 +140,12 @@ export const FarmerInventoryPage: React.FC = () => {
     setPricePerUnit(Number(p.price_per_unit));
     setThreshold(p.low_stock_threshold ?? 5);
     setImageUrl(p.image_url || '');
+    setHarvestDate(
+      p.harvest_date
+        ? new Date(p.harvest_date).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0]
+    );
+    setStorageCondition(p.storage_condition || 'FIELD_FRESH');
     setIsModalOpen(true);
   };
 
@@ -159,6 +172,8 @@ export const FarmerInventoryPage: React.FC = () => {
           price_per_unit: pricePerUnit,
           low_stock_threshold: threshold,
           image_url: imageUrl,
+          harvest_date: harvestDate,
+          storage_condition: storageCondition,
         }),
       });
 
@@ -361,6 +376,7 @@ export const FarmerInventoryPage: React.FC = () => {
                 <tr>
                   <th className="p-4">Crop / Product</th>
                   <th className="p-4">Category</th>
+                  <th className="p-4">AI Freshness</th>
                   <th className="p-4">Stock Level</th>
                   <th className="p-4">Price / Unit</th>
                   <th className="p-4">Threshold</th>
@@ -400,6 +416,16 @@ export const FarmerInventoryPage: React.FC = () => {
                       <span className="px-2 py-0.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
                         {p.category || 'General'}
                       </span>
+                    </td>
+
+                    <td className="p-4">
+                      <FreshnessMeter
+                        harvestDate={p.harvest_date || p.created_at}
+                        productName={p.product_name}
+                        category={p.category || ''}
+                        storageCondition={p.storage_condition || 'FIELD_FRESH'}
+                        mode="compact"
+                      />
                     </td>
 
                     <td className="p-4">
@@ -614,6 +640,67 @@ export const FarmerInventoryPage: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* AI Harvest & Freshness Intelligence Controls */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-emerald-900 dark:text-emerald-200">
+                    <Leaf className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>AI Crop Freshness & Harvest Intelligence</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
+                    Live Calculation
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Harvest / Picked Date *</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={harvestDate}
+                      onChange={(e) => setHarvestDate(e.target.value)}
+                      className="w-full p-2 rounded-xl text-xs border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-semibold focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                      Storage Method
+                    </label>
+                    <select
+                      value={storageCondition}
+                      onChange={(e) => setStorageCondition(e.target.value)}
+                      className="w-full p-2 rounded-xl text-xs border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-semibold focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="FIELD_FRESH">Field Fresh (Direct Pick)</option>
+                      <option value="COLD_STORAGE">Cold Storage (2-6°C)</option>
+                      <option value="SHADE_VENTILATED">Shaded & Ventilated</option>
+                      <option value="DRY_STORAGE">Dry Aerated Warehouse</option>
+                      <option value="STANDARD">Ambient Farm Storage</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Real-time Interactive AI Freshness Preview Meter */}
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block pb-1">
+                    Customer Visibility Preview:
+                  </span>
+                  <FreshnessMeter
+                    harvestDate={harvestDate}
+                    productName={productName}
+                    category={category}
+                    storageCondition={storageCondition}
+                    mode="card"
+                    showExplanation={true}
+                  />
+                </div>
+              </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-stone-600 dark:text-stone-300">
