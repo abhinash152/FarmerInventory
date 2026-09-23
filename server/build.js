@@ -1,7 +1,11 @@
 const { execSync } = require('child_process');
 
-// Ensure DATABASE_URL is set so Prisma never fails due to missing environment variable
-if (!process.env.DATABASE_URL) {
+// Ensure DATABASE_URL is set to SQLite and override any invalid mysql or localhost URLs from cloud settings
+if (
+  !process.env.DATABASE_URL ||
+  process.env.DATABASE_URL.startsWith('mysql') ||
+  process.env.DATABASE_URL.includes('localhost')
+) {
   process.env.DATABASE_URL = 'file:./dev.db';
 }
 

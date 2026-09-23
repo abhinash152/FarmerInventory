@@ -1,46 +1,45 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import authRoutes from './routes/authRoutes';
-import productRoutes from './routes/productRoutes';
-import orderRoutes from './routes/orderRoutes';
-import saleRoutes from './routes/saleRoutes';
-import reportRoutes from './routes/reportRoutes';
-import chatRoutes from './routes/chatRoutes';
-import feedbackRoutes from './routes/feedbackRoutes';
-import toolRoutes from './routes/toolRoutes';
-import aiRoutes from './routes/aiRoutes';
-import notificationRoutes from './routes/notificationRoutes';
-import complaintRoutes from './routes/complaintRoutes';
-
-dotenv.config();
-
-const app = express();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
+const orderRoutes_1 = __importDefault(require("./routes/orderRoutes"));
+const saleRoutes_1 = __importDefault(require("./routes/saleRoutes"));
+const reportRoutes_1 = __importDefault(require("./routes/reportRoutes"));
+const chatRoutes_1 = __importDefault(require("./routes/chatRoutes"));
+const feedbackRoutes_1 = __importDefault(require("./routes/feedbackRoutes"));
+const toolRoutes_1 = __importDefault(require("./routes/toolRoutes"));
+const aiRoutes_1 = __importDefault(require("./routes/aiRoutes"));
+const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
+const complaintRoutes_1 = __importDefault(require("./routes/complaintRoutes"));
+dotenv_1.default.config();
+const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
-
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '10mb' }));
-
+app.use((0, cors_1.default)({ origin: true, credentials: true }));
+app.use(express_1.default.json({ limit: '10mb' }));
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/sales', saleRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/tools', toolRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/complaints', complaintRoutes);
-
-import { prisma } from './prisma';
-import { seedDatabase } from './seed';
-
+app.use('/api/auth', authRoutes_1.default);
+app.use('/api/products', productRoutes_1.default);
+app.use('/api/orders', orderRoutes_1.default);
+app.use('/api/sales', saleRoutes_1.default);
+app.use('/api/reports', reportRoutes_1.default);
+app.use('/api/chat', chatRoutes_1.default);
+app.use('/api/feedback', feedbackRoutes_1.default);
+app.use('/api/tools', toolRoutes_1.default);
+app.use('/api/ai', aiRoutes_1.default);
+app.use('/api/notifications', notificationRoutes_1.default);
+app.use('/api/complaints', complaintRoutes_1.default);
+const prisma_1 = require("./prisma");
+const seed_1 = require("./seed");
 // Root status & landing page
 app.get('/', (req, res) => {
-  if (req.accepts('html')) {
-    res.send(`<!DOCTYPE html>
+    if (req.accepts('html')) {
+        res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -162,33 +161,33 @@ app.get('/', (req, res) => {
   </div>
 </body>
 </html>`);
-  } else {
-    res.json({
-      status: 'ok',
-      service: 'FarmerInventory Backend',
-      version: '1.0.0',
-      frontend: 'https://farmer-inventory.vercel.app',
-      health: '/api/health',
-      timestamp: new Date()
-    });
-  }
+    }
+    else {
+        res.json({
+            status: 'ok',
+            service: 'FarmerInventory Backend',
+            version: '1.0.0',
+            frontend: 'https://farmer-inventory.vercel.app',
+            health: '/api/health',
+            timestamp: new Date()
+        });
+    }
 });
-
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'FarmerInventory Backend', timestamp: new Date() });
+    res.json({ status: 'ok', service: 'FarmerInventory Backend', timestamp: new Date() });
 });
-
 app.listen(Number(PORT), '0.0.0.0', async () => {
-  console.log(`🌾 FarmerInventory Server running on 0.0.0.0:${PORT}`);
-  try {
-    const productCount = await prisma.product.count();
-    if (productCount === 0) {
-      console.log('🌱 Cloud database is empty. Auto-seeding initial harvest demo data...');
-      await seedDatabase(true);
-      console.log('✅ Initial seed completed successfully!');
+    console.log(`🌾 FarmerInventory Server running on 0.0.0.0:${PORT}`);
+    try {
+        const productCount = await prisma_1.prisma.product.count();
+        if (productCount === 0) {
+            console.log('🌱 Cloud database is empty. Auto-seeding initial harvest demo data...');
+            await (0, seed_1.seedDatabase)(true);
+            console.log('✅ Initial seed completed successfully!');
+        }
     }
-  } catch (error) {
-    console.error('Database connection/sync warning:', error);
-  }
+    catch (error) {
+        console.error('Database connection/sync warning:', error);
+    }
 });
