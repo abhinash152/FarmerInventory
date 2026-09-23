@@ -1,5 +1,5 @@
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -7,43 +7,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum OrderStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-}
-
-enum UserRole {
-  FARMER
-  CUSTOMER
-}
-
-enum PaymentMethod {
-  ONLINE
-  COD
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-}
-
-enum TrackingStep {
-  PLACED
-  ACCEPTED
-  PACKED
-  OUT_FOR_DELIVERY
-  DELIVERED
-}
-
 model Farmer {
-  farmer_id      Int       @id @default(autoincrement())
-  full_name      String    @db.VarChar(120)
-  username       String    @unique @db.VarChar(60)
-  password_hash  String    @db.VarChar(255)
-  contact_number String?   @db.VarChar(20)
-  farm_location  String?   @db.VarChar(150)
-  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  farmer_id      Int             @id @default(autoincrement())
+  full_name      String
+  username       String          @unique
+  password_hash  String
+  contact_number String?
+  farm_location  String?
+  created_at     DateTime?       @default(now())
 
   products       Product[]
   orders         Order[]
@@ -56,13 +27,13 @@ model Farmer {
 }
 
 model Customer {
-  customer_id    Int       @id @default(autoincrement())
-  customer_name  String    @db.VarChar(120)
-  contact_number String?   @db.VarChar(20)
-  address        String?   @db.VarChar(255)
-  username       String    @unique @db.VarChar(60)
-  password_hash  String    @db.VarChar(255)
-  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  customer_id    Int             @id @default(autoincrement())
+  customer_name  String
+  contact_number String?
+  address        String?
+  username       String          @unique
+  password_hash  String
+  created_at     DateTime?       @default(now())
 
   orders         Order[]
   sales          Sale[]
@@ -73,21 +44,21 @@ model Customer {
 }
 
 model Product {
-  product_id          Int       @id @default(autoincrement())
+  product_id          Int             @id @default(autoincrement())
   farmer_id           Int
-  product_name        String    @db.VarChar(120)
-  category            String?   @db.VarChar(60)
-  stock_quantity      Int       @default(0)
-  unit                String    @db.VarChar(20)
-  price_per_unit      Decimal   @db.Decimal(10, 2)
-  low_stock_threshold Int?      @default(5)
-  image_url           String?   @db.VarChar(255)
-  harvest_date        DateTime? @db.Timestamp(0)
-  storage_condition   String?   @db.VarChar(60)
-  created_at          DateTime? @default(now()) @db.Timestamp(0)
-  updated_at          DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  product_name        String
+  category            String?
+  stock_quantity      Int             @default(0)
+  unit                String
+  price_per_unit      Float
+  low_stock_threshold Int?            @default(5)
+  image_url           String?
+  harvest_date        DateTime?
+  storage_condition   String?
+  created_at          DateTime?       @default(now())
+  updated_at          DateTime?       @default(now()) @updatedAt
 
-  farmer              Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  farmer              Farmer          @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
   orders              Order[]
   sales               Sale[]
   feedbacks           OrderFeedback[]
@@ -99,18 +70,18 @@ model Product {
 }
 
 model Order {
-  order_id     Int         @id @default(autoincrement())
+  order_id     Int             @id @default(autoincrement())
   customer_id  Int
   farmer_id    Int
   product_id   Int
   quantity     Int
-  status       OrderStatus @default(PENDING)
-  requested_at DateTime?   @default(now()) @db.Timestamp(0)
-  responded_at DateTime?   @db.Timestamp(0)
+  status       String          @default("PENDING")
+  requested_at DateTime?       @default(now())
+  responded_at DateTime?
 
-  customer     Customer    @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
-  farmer       Farmer      @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
-  product      Product     @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  customer     Customer        @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  farmer       Farmer          @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  product      Product         @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
 
   feedback     OrderFeedback?
   extension    OrderExtension?
@@ -127,8 +98,8 @@ model Sale {
   customer_id   Int
   farmer_id     Int
   quantity_sold Int
-  total_amount  Decimal   @db.Decimal(10, 2)
-  sale_date     DateTime? @default(now()) @db.Timestamp(0)
+  total_amount  Float
+  sale_date     DateTime? @default(now())
 
   product       Product   @relation(fields: [product_id], references: [product_id])
   customer      Customer  @relation(fields: [customer_id], references: [customer_id])
@@ -140,35 +111,35 @@ model Sale {
 }
 
 model OrderFeedback {
-  feedback_id  Int       @id @default(autoincrement())
-  order_id     Int       @unique
-  customer_id  Int
-  farmer_id    Int
-  product_id   Int
-  rating       Int
-  comment      String?   @db.Text
-  created_at   DateTime? @default(now()) @db.Timestamp(0)
+  feedback_id Int       @id @default(autoincrement())
+  order_id    Int       @unique
+  customer_id Int
+  farmer_id   Int
+  product_id  Int
+  rating      Int
+  comment     String?
+  created_at  DateTime? @default(now())
 
-  order        Order     @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
-  customer     Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
-  farmer       Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
-  product      Product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  order       Order     @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  customer    Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  farmer      Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  product     Product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
 
   @@map("order_feedback")
 }
 
 model OrderExtension {
-  ext_id             Int           @id @default(autoincrement())
-  order_id           Int           @unique
-  payment_method     PaymentMethod @default(COD)
-  payment_status     PaymentStatus @default(PENDING)
-  delivery_pincode   String?       @db.VarChar(10)
-  delivery_fee       Decimal       @default(0.00) @db.Decimal(10, 2)
-  delivery_address   String?       @db.VarChar(255)
-  tracking_step      TrackingStep  @default(PLACED)
-  estimated_delivery String?       @db.VarChar(60)
+  ext_id             Int     @id @default(autoincrement())
+  order_id           Int     @unique
+  payment_method     String  @default("COD")
+  payment_status     String  @default("PENDING")
+  delivery_pincode   String?
+  delivery_fee       Float   @default(0.0)
+  delivery_address   String?
+  tracking_step      String  @default("PLACED")
+  estimated_delivery String?
 
-  order              Order         @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  order              Order   @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
 
   @@map("order_details_ext")
 }
@@ -177,10 +148,10 @@ model ChatMessage {
   message_id   Int       @id @default(autoincrement())
   farmer_id    Int
   customer_id  Int
-  sender_role  UserRole
-  message_text String    @db.Text
+  sender_role  String
+  message_text String
   is_read      Boolean   @default(false)
-  created_at   DateTime? @default(now()) @db.Timestamp(0)
+  created_at   DateTime? @default(now())
 
   @@index([farmer_id, customer_id], map: "idx_chat_participants")
   @@map("chat_messages")
@@ -190,43 +161,36 @@ model Notification {
   notification_id Int       @id @default(autoincrement())
   farmer_id       Int
   product_id      Int?
-  title           String    @db.VarChar(150)
-  message         String    @db.Text
-  type            String    @default("INFO") @db.VarChar(40)
+  title           String
+  message         String
+  type            String    @default("INFO")
   is_read         Boolean   @default(false)
-  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  created_at      DateTime? @default(now())
 
   farmer          Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
 
   @@map("notifications")
 }
 
-enum ComplaintStatus {
-  PENDING
-  INVESTIGATING
-  RESOLVED
-}
-
 model Complaint {
-  complaint_id   Int             @id @default(autoincrement())
-  order_id       Int
-  customer_id    Int
-  farmer_id      Int
-  product_id     Int
-  issue_type     String          @db.VarChar(60)
-  description    String          @db.Text
-  proof_image    String?         @db.LongText
-  status         ComplaintStatus @default(PENDING)
-  resolution     String?         @db.Text
-  created_at     DateTime?       @default(now()) @db.Timestamp(0)
+  complaint_id Int       @id @default(autoincrement())
+  order_id     Int
+  customer_id  Int
+  farmer_id    Int
+  product_id   Int
+  issue_type   String
+  description  String
+  proof_image  String?
+  status       String    @default("PENDING")
+  resolution   String?
+  created_at   DateTime? @default(now())
 
-  order          Order           @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
-  customer       Customer        @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
-  farmer         Farmer          @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
-  product        Product         @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  order        Order     @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  customer     Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  farmer       Farmer    @relation(fields: [farmer_id], references: [farmer_id], onDelete: Cascade)
+  product      Product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
 
   @@index([farmer_id], map: "idx_complaint_farmer")
   @@index([product_id], map: "idx_complaint_product")
   @@map("complaints")
 }
-

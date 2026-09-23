@@ -4,8 +4,7 @@
   "description": "Backend API for FarmerInventory marketplace and inventory system",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "prisma generate && prisma db push --accept-data-loss && tsc",
+    "build": "node build.js",
     "postinstall": "prisma generate",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",

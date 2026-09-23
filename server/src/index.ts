@@ -185,7 +185,7 @@ app.listen(PORT, async () => {
     const productCount = await prisma.product.count();
     if (productCount === 0) {
       console.log('🌱 Cloud database is empty. Auto-seeding initial harvest demo data...');
-      await seedDatabase(false);
+      await seedDatabase(true);
       console.log('✅ Initial seed completed successfully!');
     }
   } catch (error) {

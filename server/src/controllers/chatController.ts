@@ -1,7 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../prisma';
+import { prisma, UserRole } from '../prisma';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { UserRole } from '@prisma/client';
 
 export const getConversations = async (req: AuthenticatedRequest, res: Response) => {
   try {

@@ -1,7 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../prisma';
+import { prisma, OrderStatus } from '../prisma';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { OrderStatus } from '@prisma/client';
 
 export const getFarmerDashboardStats = async (req: AuthenticatedRequest, res: Response) => {
   try {

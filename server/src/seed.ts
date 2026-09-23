@@ -1,11 +1,10 @@
-import { PrismaClient, OrderStatus, PaymentMethod, PaymentStatus, TrackingStep, UserRole } from '@prisma/client';
+import { prisma, OrderStatus, PaymentMethod, PaymentStatus, TrackingStep, UserRole } from './prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export async function seedDatabase(cleanExisting = true) {
   if (cleanExisting) {
     console.log('🌱 Cleaning existing data in farmer_inventory_system...');
+    await prisma.complaint.deleteMany();
     await prisma.notification.deleteMany();
     await prisma.chatMessage.deleteMany();
     await prisma.orderFeedback.deleteMany();

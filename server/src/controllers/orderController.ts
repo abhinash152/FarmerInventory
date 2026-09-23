@@ -1,7 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../prisma';
+import { prisma, OrderStatus, PaymentMethod, PaymentStatus, TrackingStep } from '../prisma';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { OrderStatus, PaymentMethod, PaymentStatus, TrackingStep } from '@prisma/client';
 
 export const placeOrder = async (req: AuthenticatedRequest, res: Response) => {
   try {
