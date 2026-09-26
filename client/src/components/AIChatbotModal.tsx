@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Loader2,
   PlusCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 interface VoiceActionData {
@@ -64,12 +65,17 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [executingActionIdx, setExecutingActionIdx] = useState<number | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // Default to Hindi ('hi-IN') so Kisan Mitra naturally talks in Hindi!
   const [voiceLang, setVoiceLang] = useState<'hi-IN' | 'en-IN' | 'pa-IN'>('hi-IN');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef<boolean>(false);
+  const silenceTimerRef = useRef<any>(null);
+  const speechAccumulatorRef = useRef<string>('');
+  const consecutiveRestartsRef = useRef<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load available speech synthesis voices
@@ -178,11 +184,17 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isListeningRef.current = false;
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
     };
   }, []);
@@ -192,64 +204,210 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
-  const startListening = () => {
+  const startListening = async () => {
     if (!isSpeechSupported) {
-      alert('Speech recognition is not supported in this browser. Please use Google Chrome or Edge.');
+      setPermissionError(
+        voiceLang === 'hi-IN'
+          ? 'आपके ब्राउज़र में आवाज़ पहचान समर्थित नहीं है। कृपया Google Chrome या Microsoft Edge का उपयोग करें।'
+          : 'Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.'
+      );
       return;
     }
 
-    if (recognitionRef.current) {
-      recognitionRef.current.abort();
+    // 1. Immediately cancel any speech synthesis to prevent audio hardware conflict
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
+
+    setPermissionError(null);
+
+    // 2. Warm up and verify microphone permission via getUserMedia
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Immediately release media tracks so SpeechRecognition has exclusive audio hardware control
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err: any) {
+        console.warn('Microphone permission check failed:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setPermissionError(
+            voiceLang === 'hi-IN'
+              ? 'माइक्रोफ़ोन की अनुमति अस्वीकृत (Denied) है। कृपया ब्राउज़र एड्रेस बार में 🔒 या माइक्रोफ़ोन आइकन पर क्लिक करके अनुमति (Allow) दें।'
+              : 'Microphone permission blocked. Please allow mic access in your browser address bar settings.'
+          );
+          setIsListening(false);
+          isListeningRef.current = false;
+          return;
+        }
+      }
+    }
+
+    // 3. Clean up any existing recognition instance
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
+    }
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    speechAccumulatorRef.current = '';
+    consecutiveRestartsRef.current = 0;
+    isListeningRef.current = true;
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = voiceLang; // 'hi-IN' or 'en-IN'
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setInterimTranscript('');
-    };
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = voiceLang; // 'hi-IN', 'en-IN', or 'pa-IN'
 
-    recognition.onresult = (event: any) => {
-      let currentInterim = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          const finalTranscript = event.results[i][0].transcript;
+      recognition.onstart = () => {
+        setIsListening(true);
+        setInterimTranscript('');
+        setPermissionError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        consecutiveRestartsRef.current = 0;
+        let interim = '';
+        let finalChunk = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalChunk += transcript + ' ';
+          } else {
+            interim += transcript;
+          }
+        }
+
+        if (finalChunk) {
+          speechAccumulatorRef.current = (speechAccumulatorRef.current + ' ' + finalChunk).trim();
+        }
+
+        const combined = (speechAccumulatorRef.current + (interim ? ' ' + interim : '')).trim();
+        setInterimTranscript(combined);
+        setPrompt(combined);
+
+        // Reset silence timer on speech
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+        }
+
+        // Auto-send after 2 seconds of silence once speech has been captured
+        if (combined.length > 0) {
+          silenceTimerRef.current = setTimeout(() => {
+            if (isListeningRef.current) {
+              const textToSend = (speechAccumulatorRef.current + (interim ? ' ' + interim : '')).trim();
+              if (textToSend) {
+                stopListening(false);
+                handleSend(textToSend);
+              }
+            }
+          }, 2000);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error event:', event.error);
+
+        // 'no-speech' is a benign pause event in Chrome - do NOT cancel listening!
+        if (event.error === 'no-speech') {
+          return;
+        }
+
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isListeningRef.current = false;
+          setIsListening(false);
+          setPermissionError(
+            voiceLang === 'hi-IN'
+              ? 'माइक्रोफ़ोन अनुमति अवरोधित है। कृपया ब्राउज़र एड्रेस बार में 🔒 या माइक आइकन पर क्लिक करके अनुमति दें।'
+              : 'Microphone permission blocked. Please enable microphone access in your browser address bar.'
+          );
+          return;
+        }
+
+        if (event.error === 'aborted') {
+          // Normal abort when user stops or switches
+          return;
+        }
+      };
+
+      recognition.onend = () => {
+        // If the user did not manually stop listening:
+        if (isListeningRef.current) {
+          const textToSend = (speechAccumulatorRef.current + ' ' + interimTranscript).trim();
+          if (textToSend.length > 2) {
+            // Speech was spoken and ended; submit query!
+            isListeningRef.current = false;
+            setIsListening(false);
+            setInterimTranscript('');
+            handleSend(textToSend);
+          } else if (consecutiveRestartsRef.current < 4) {
+            // Restart seamlessly to prevent premature cancellation during natural silence
+            consecutiveRestartsRef.current += 1;
+            try {
+              recognition.start();
+            } catch (err) {
+              console.warn('Could not auto-restart recognition:', err);
+              setIsListening(false);
+              isListeningRef.current = false;
+            }
+          } else {
+            // Max silence reached without speech; gracefully end listening
+            setIsListening(false);
+            isListeningRef.current = false;
+            setInterimTranscript('');
+          }
+        } else {
           setIsListening(false);
           setInterimTranscript('');
-          handleSend(finalTranscript);
-          return;
-        } else {
-          currentInterim += event.results[i][0].transcript;
         }
-      }
-      setInterimTranscript(currentInterim);
-    };
+      };
 
-    recognition.onerror = (event: any) => {
-      console.warn('Speech recognition error:', event.error);
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to initialize SpeechRecognition:', err);
       setIsListening(false);
-      setInterimTranscript('');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      setInterimTranscript('');
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+      isListeningRef.current = false;
+    }
   };
 
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+  const stopListening = (shouldSend = true) => {
+    isListeningRef.current = false;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+      recognitionRef.current = null;
+    }
+
     setIsListening(false);
+
+    const textToSend = (speechAccumulatorRef.current + ' ' + interimTranscript).trim();
+    speechAccumulatorRef.current = '';
+    setInterimTranscript('');
+
+    if (shouldSend && textToSend.length > 0) {
+      handleSend(textToSend);
+    }
   };
 
   // Auto-listen if triggered by floating button
@@ -257,7 +415,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     if (autoListen && isSpeechSupported) {
       const timer = setTimeout(() => {
         startListening();
-      }, 400);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [autoListen]);
@@ -265,8 +423,8 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
   // Handle switching language in modal
   const handleLanguageChange = (lang: 'hi-IN' | 'en-IN' | 'pa-IN') => {
     setVoiceLang(lang);
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.lang = lang;
+    if (isListening) {
+      stopListening(false);
     }
 
     const welcome =
@@ -496,6 +654,23 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
           </div>
         </div>
 
+        {/* Permission Error Banner */}
+        {permissionError && (
+          <div className="mx-4 mt-3 p-3 bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 rounded-2xl text-xs text-red-700 dark:text-red-300 flex items-start gap-2.5 shadow-sm">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-bold block">माइक्रोफ़ोन अनुमति सूचना (Microphone Notice)</span>
+              <span className="mt-0.5 block leading-relaxed">{permissionError}</span>
+            </div>
+            <button
+              onClick={() => setPermissionError(null)}
+              className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded text-red-500 hover:text-red-700"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Chat turns view */}
         <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-stone-50/60 dark:bg-stone-950/40">
           {messages.map((m, idx) => {
@@ -651,24 +826,43 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
           {/* Live Voice Recording Visualizer */}
           {isListening && (
             <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 flex items-center gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center animate-ping">
+              <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center animate-ping shrink-0">
                 <Mic className="w-4 h-4" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                  <span>🎙️ हिंदी में बोलिए (Listening in Hindi...)</span>
-                  <span className="text-[10px] text-red-500 font-extrabold uppercase">LIVE REC</span>
+                  <span>
+                    {voiceLang === 'hi-IN'
+                      ? '🎙️ हिंदी में बोलिए (Listening in Hindi...)'
+                      : voiceLang === 'pa-IN'
+                      ? '🎙️ ਪੰਜਾਬੀ ਵਿੱਚ ਬੋਲੋ (Listening in Punjabi...)'
+                      : '🎙️ Listening in English...'}
+                  </span>
+                  <span className="text-[10px] text-red-500 font-extrabold uppercase shrink-0">LIVE REC</span>
                 </div>
-                <div className="text-xs text-stone-600 dark:text-stone-300 italic">
-                  {interimTranscript || 'जैसे: "50 किलो आलू 25 रुपये में जोड़ो" या "मंडी भाव दिखाओ"'}
+                <div className="text-xs text-stone-600 dark:text-stone-300 italic truncate">
+                  {interimTranscript ||
+                    (voiceLang === 'hi-IN'
+                      ? 'जैसे: "50 किलो आलू 25 रुपये में जोड़ो" या "मंडी भाव दिखाओ"'
+                      : 'e.g. "Add 50 kg potatoes at 25 rupees" or "Show mandi rates"')}
                 </div>
               </div>
-              <button
-                onClick={stopListening}
-                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
-              >
-                बंद करें / Stop
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {interimTranscript.trim() && (
+                  <button
+                    onClick={() => stopListening(true)}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                  >
+                    भेजें / Send
+                  </button>
+                )}
+                <button
+                  onClick={() => stopListening(false)}
+                  className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                >
+                  रद्द करें / Stop
+                </button>
+              </div>
             </div>
           )}
 
@@ -692,8 +886,14 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
         <div className="p-3 border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex items-center gap-2">
           {/* Microphone button */}
           <button
-            onClick={isListening ? stopListening : startListening}
-            title={isListening ? 'Stop listening' : 'हिंदी या इंग्लिश में बोलकर पूछें'}
+            onClick={() => {
+              if (isListening) {
+                stopListening(true);
+              } else {
+                startListening();
+              }
+            }}
+            title={isListening ? 'Stop listening (सुनना बंद करें)' : 'हिंदी या इंग्लिश में बोलकर पूछें (Click to Speak)'}
             className={`p-3 rounded-2xl transition-all relative ${
               isListening
                 ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 ring-4 ring-red-400/40 animate-pulse'
