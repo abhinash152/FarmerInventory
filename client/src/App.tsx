@@ -22,6 +22,7 @@ import { CustomerMarketplacePage } from './pages/customer/CustomerMarketplacePag
 import { CustomerOrdersPage } from './pages/customer/CustomerOrdersPage';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Mic } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -30,6 +31,7 @@ const MainApp: React.FC = () => {
   const [authModalRole, setAuthModalRole] = useState<'FARMER' | 'CUSTOMER' | null>(null);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [isMandiOpen, setIsMandiOpen] = useState(false);
+  const [autoListenAI, setAutoListenAI] = useState(false);
 
   // Set default tab when auth changes
   useEffect(() => {
@@ -200,8 +202,37 @@ const MainApp: React.FC = () => {
         />
       )}
 
-      {isAIOpen && <AIChatbotModal onClose={() => setIsAIOpen(false)} />}
+      {isAIOpen && (
+        <AIChatbotModal
+          onClose={() => {
+            setIsAIOpen(false);
+            setAutoListenAI(false);
+          }}
+          onNavigateTab={(tab) => setActiveTab(tab)}
+          onOpenMandi={() => setIsMandiOpen(true)}
+          autoListen={autoListenAI}
+        />
+      )}
       {isMandiOpen && <MandiPriceModal onClose={() => setIsMandiOpen(false)} />}
+
+      {/* Floating Kisan Voice AI Assistant Button */}
+      <button
+        onClick={() => {
+          setAutoListenAI(true);
+          setIsAIOpen(true);
+        }}
+        title="Kisan Mitra Voice AI - बोलकर पूछें या उत्पाद जोड़ें"
+        className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full shadow-2xl hover:shadow-emerald-600/40 hover:scale-105 active:scale-95 transition-all duration-300 border border-white/30 backdrop-blur-md"
+      >
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
+        </span>
+        <Mic className="w-4 h-4 text-white animate-pulse" />
+        <span className="font-bold text-xs sm:text-sm tracking-tight pr-1">
+          बोलकर पूछें / Voice AI
+        </span>
+      </button>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-stone-200/80 dark:border-stone-800/80 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md py-6 text-center text-xs text-stone-500">
