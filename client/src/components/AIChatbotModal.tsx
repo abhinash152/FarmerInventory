@@ -17,8 +17,6 @@ import {
   ArrowRight,
   Loader2,
   PlusCircle,
-  HelpCircle,
-  TrendingUp,
 } from 'lucide-react';
 
 interface VoiceActionData {
@@ -67,13 +65,31 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [executingActionIdx, setExecutingActionIdx] = useState<number | null>(null);
 
-  // Default voice recognition language
-  const [voiceLang, setVoiceLang] = useState<'hi-IN' | 'en-IN' | 'pa-IN'>(
-    language === 'hi' ? 'hi-IN' : language === 'pa' ? 'pa-IN' : 'en-IN'
-  );
+  // Default to Hindi ('hi-IN') so Kisan Mitra naturally talks in Hindi!
+  const [voiceLang, setVoiceLang] = useState<'hi-IN' | 'en-IN' | 'pa-IN'>('hi-IN');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load available speech synthesis voices
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const loadVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      setAvailableVoices(v);
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
 
   // Initial welcome message
   const [messages, setMessages] = useState<ChatTurn[]>([
@@ -81,12 +97,8 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
       sender: 'ai',
       text:
         user?.role === 'FARMER'
-          ? language === 'hi'
-            ? 'नमस्ते किसान भाई! मैं किसान मित्र Voice AI हूँ। आप मुझसे बोलकर फसल सुरक्षा, मंडी भाव या वेबसाइट चलाने के तरीके पूछ सकते हैं। आप बोलकर नया उत्पाद भी जोड़ सकते हैं (जैसे: "50 किलो आलू 25 रुपये में जोड़ो")!'
-            : 'Hello Farmer friend! I am Kisan Mitra Voice AI. You can speak to ask about crop protection, Mandi prices, website guidance, or add crops using voice commands (e.g., "Add 50 kg Potatoes at ₹25")!'
-          : language === 'hi'
-          ? 'नमस्ते! मैं किसान इन्वेंटरी का Voice AI सहायक हूँ। आप मुझसे बोलकर ताज़ी उपज, खेत से सीधी डिलीवरी या वेबसाइट उपयोग के बारे में कुछ भी पूछ सकते हैं!'
-          : 'Welcome! I am FarmAssist Voice AI. Speak to ask about seasonal vegetables, direct delivery, or website navigation!',
+          ? 'नमस्ते किसान भाई! मैं किसान मित्र Voice AI हूँ। आप मुझसे बोलकर फसल सुरक्षा, मंडी भाव या वेबसाइट चलाने के तरीके पूछ सकते हैं। आप बोलकर नया उत्पाद भी जोड़ सकते हैं (जैसे: "50 किलो आलू 25 रुपये में जोड़ो")!'
+          : 'नमस्ते! मैं किसान इन्वेंटरी का Voice AI सहायक हूँ। आप मुझसे बोलकर ताज़ी उपज, खेत से सीधी डिलीवरी या वेबसाइट उपयोग के बारे में कुछ भी पूछ सकते हैं!',
     },
   ]);
 
@@ -95,15 +107,71 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping, interimTranscript]);
 
-  // Clean text and speak using Web Speech Synthesis (TTS)
-  const speakText = (text: string) => {
+  // Clean text and speak using Web Speech Synthesis (TTS) in Hindi or English
+  const speakText = (text: string, forcedLang?: 'hi-IN' | 'en-IN' | 'pa-IN') => {
     if (!isSpeechEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel(); // Stop any ongoing speech
     const cleanText = text.replace(/[*_#`]/g, '').trim();
+    if (!cleanText) return;
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = voiceLang;
-    utterance.rate = 0.95; // comfortable pace for Indian context
+
+    // Detect language: check for Hindi characters or active voiceLang
+    const hasHindiChars = /[\u0900-\u097F]/.test(cleanText);
+    const hasHindiWords = /(नमस्ते|किसान|आलू|टमाटर|मंडी|रुपये|जोड़ो|फसल|बिक्री|ऑर्डर|ताजगी|सब्जियां|उपज)/i.test(cleanText);
+    const hasPunjabiChars = /[\u0A00-\u0A7F]/.test(cleanText);
+
+    const targetLang =
+      forcedLang ||
+      (hasHindiChars || hasHindiWords || voiceLang === 'hi-IN'
+        ? 'hi-IN'
+        : hasPunjabiChars || voiceLang === 'pa-IN'
+        ? 'pa-IN'
+        : 'en-IN');
+
+    utterance.lang = targetLang;
+
+    // Pick best matching voice from browser
+    const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+
+    if (targetLang === 'hi-IN') {
+      // Find dedicated Hindi voice (e.g., Google हिन्दी, Microsoft Kalpana, Microsoft Hemant)
+      const hiVoice =
+        voices.find((v) => v.lang === 'hi-IN' || v.lang === 'hi_IN' || v.lang.startsWith('hi')) ||
+        voices.find(
+          (v) =>
+            v.name.toLowerCase().includes('hindi') ||
+            v.name.toLowerCase().includes('kalpana') ||
+            v.name.toLowerCase().includes('hemant')
+        );
+
+      if (hiVoice) {
+        utterance.voice = hiVoice;
+      }
+      utterance.rate = 0.9; // Clear, comfortable Hindi cadence
+      utterance.pitch = 1.0;
+    } else if (targetLang === 'pa-IN') {
+      const paVoice =
+        voices.find((v) => v.lang.startsWith('pa') || v.name.toLowerCase().includes('punjabi')) ||
+        voices.find((v) => v.lang.startsWith('hi'));
+      if (paVoice) utterance.voice = paVoice;
+      utterance.rate = 0.9;
+    } else {
+      const inVoice =
+        voices.find((v) => v.lang === 'en-IN' || v.lang === 'en_IN') ||
+        voices.find(
+          (v) =>
+            v.name.toLowerCase().includes('india') ||
+            v.name.toLowerCase().includes('neerja') ||
+            v.name.toLowerCase().includes('prabhat')
+        );
+      if (inVoice) {
+        utterance.voice = inVoice;
+      }
+      utterance.rate = 0.95;
+    }
+
     window.speechSynthesis.speak(utterance);
   };
 
@@ -139,7 +207,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = voiceLang;
+    recognition.lang = voiceLang; // 'hi-IN' or 'en-IN'
 
     recognition.onstart = () => {
       setIsListening(true);
@@ -194,6 +262,28 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     }
   }, [autoListen]);
 
+  // Handle switching language in modal
+  const handleLanguageChange = (lang: 'hi-IN' | 'en-IN' | 'pa-IN') => {
+    setVoiceLang(lang);
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.lang = lang;
+    }
+
+    const welcome =
+      lang === 'hi-IN'
+        ? user?.role === 'FARMER'
+          ? 'नमस्ते किसान भाई! मैं अब हिंदी में बात करूँगा। आप बोलकर नया उत्पाद जोड़ सकते हैं या मंडी भाव पूछ सकते हैं।'
+          : 'नमस्ते! मैं अब हिंदी में आपकी सहायता करूँगा। ताज़ी मौसमी उपज या डिलीवरी के बारे में कुछ भी पूछें!'
+        : lang === 'pa-IN'
+        ? 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਹੁਣ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰਾਂਗਾ।'
+        : user?.role === 'FARMER'
+        ? 'Hello! Switched to English. Ask about crop pricing, pest control, or speak to add crops.'
+        : 'Welcome! Switched to English. Ask about farm-fresh produce or order delivery.';
+
+    setMessages((prev) => [...prev, { sender: 'ai', text: welcome }]);
+    speakText(welcome, lang);
+  };
+
   // Send message to AI endpoint
   const handleSend = async (customPrompt?: string) => {
     const text = customPrompt || prompt;
@@ -206,6 +296,14 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
     if (!customPrompt) setPrompt('');
     setIsTyping(true);
 
+    // Auto-detect Hindi from text or active voiceLang
+    const hasHindiChars = /[\u0900-\u097F]/.test(text);
+    const hasHindiWords = /(karo|aalu|tamatar|kaise|batao|kya|dikhaye|jodo|bhav|mandi|kisan|khet)/i.test(text);
+    const isHindi = voiceLang === 'hi-IN' || hasHindiChars || hasHindiWords;
+    const isPunjabi = voiceLang === 'pa-IN' || /[\u0A00-\u0A7F]/.test(text);
+
+    const targetLangKey = isHindi ? 'hi' : isPunjabi ? 'pa' : 'en';
+
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -213,7 +311,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
         body: JSON.stringify({
           prompt: text.trim(),
           role: user?.role || 'CUSTOMER',
-          language: voiceLang.startsWith('hi') ? 'hi' : voiceLang.startsWith('pa') ? 'pa' : 'en',
+          language: targetLangKey,
         }),
       });
 
@@ -225,18 +323,18 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
           action: data.action,
         };
         setMessages((prev) => [...prev, aiTurn]);
-        speakText(data.reply);
+        speakText(data.reply, isHindi ? 'hi-IN' : isPunjabi ? 'pa-IN' : 'en-IN');
       } else {
         const fallbackText =
-          language === 'hi'
+          isHindi
             ? 'माफ़ कीजिए, मैं अभी इस अनुरोध को संसाधित नहीं कर सका। कृपया पुनः प्रयास करें।'
             : 'Sorry, I could not process your request at this moment. Please try again.';
         setMessages((prev) => [...prev, { sender: 'ai', text: fallbackText }]);
-        speakText(fallbackText);
+        speakText(fallbackText, isHindi ? 'hi-IN' : 'en-IN');
       }
     } catch {
       const errorText =
-        language === 'hi'
+        isHindi
           ? 'सर्वर से कनेक्ट करने में समस्या आई है। कृपया नेटवर्क जांचें।'
           : 'Network connection issue with AI service.';
       setMessages((prev) => [...prev, { sender: 'ai', text: errorText }]);
@@ -248,11 +346,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
   // Execute Voice Action: Add Product to Database
   const handleConfirmAddProduct = async (data: VoiceActionData, turnIndex: number) => {
     if (!token || user?.role !== 'FARMER') {
-      alert(
-        language === 'hi'
-          ? 'उत्पाद जोड़ने के लिए कृपया पहले किसान (Farmer) के रूप में लॉगिन करें!'
-          : 'Please login as a Farmer to add products to your catalog!'
-      );
+      alert('उत्पाद जोड़ने के लिए कृपया पहले किसान (Farmer) के रूप में लॉगिन करें!');
       return;
     }
 
@@ -278,18 +372,13 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
 
       const result = await res.json();
       if (result.success) {
-        // Mark action executed
         setMessages((prev) =>
           prev.map((m, idx) => (idx === turnIndex ? { ...m, isActionExecuted: true } : m))
         );
 
-        const confirmMsg =
-          language === 'hi'
-            ? `✅ बधाई! **${data.product_name}** (${data.stock_quantity} ${data.unit}) आपकी इन्वेंटरी में सफलतापूर्वक जोड़ दिया गया है!`
-            : `✅ Success! **${data.product_name}** (${data.stock_quantity} ${data.unit}) has been added to your live catalog!`;
-
+        const confirmMsg = `✅ बधाई! **${data.product_name}** (${data.stock_quantity} ${data.unit}) आपकी इन्वेंटरी में सफलतापूर्वक जोड़ दिया गया है!`;
         setMessages((prev) => [...prev, { sender: 'ai', text: confirmMsg }]);
-        speakText(confirmMsg);
+        speakText(confirmMsg, 'hi-IN');
       } else {
         alert(result.message || 'Failed to add product');
       }
@@ -332,30 +421,52 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                 <h3 className="font-extrabold text-base leading-tight tracking-tight">
                   Kisan Mitra Voice AI (किसान मित्र)
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/25 uppercase border border-white/30 tracking-wider">
-                  {voiceLang.split('-')[0]}
-                </span>
               </div>
               <p className="text-[11px] opacity-90 font-medium">
-                {language === 'hi'
-                  ? 'आवाज़ पहचान और वेबसाइट सहायक'
+                {voiceLang === 'hi-IN'
+                  ? '🇮🇳 हिंदी आवाज़ पहचान और सहायक सक्रिय'
                   : 'Voice Recognition & Agricultural Assistant'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Language Switcher */}
-            <select
-              value={voiceLang}
-              onChange={(e) => setVoiceLang(e.target.value as any)}
-              className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-semibold border border-white/30 focus:outline-none cursor-pointer"
-              title="Voice Recognition Language"
-            >
-              <option value="hi-IN" className="text-stone-900">हिंदी (Hindi)</option>
-              <option value="en-IN" className="text-stone-900">English (India)</option>
-              <option value="pa-IN" className="text-stone-900">ਪੰਜਾਬੀ (Punjabi)</option>
-            </select>
+            {/* Direct Language Switch Buttons */}
+            <div className="flex items-center bg-black/25 p-1 rounded-xl border border-white/20">
+              <button
+                onClick={() => handleLanguageChange('hi-IN')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  voiceLang === 'hi-IN'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="Switch to Hindi voice"
+              >
+                🇮🇳 हिंदी
+              </button>
+              <button
+                onClick={() => handleLanguageChange('en-IN')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  voiceLang === 'en-IN'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="Switch to English voice"
+              >
+                🌐 Eng
+              </button>
+              <button
+                onClick={() => handleLanguageChange('pa-IN')}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+                  voiceLang === 'pa-IN'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="Switch to Punjabi voice"
+              >
+                ਪੰ
+              </button>
+            </div>
 
             {/* Audio Speech Toggle */}
             <button
@@ -365,7 +476,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                 }
                 setIsSpeechEnabled(!isSpeechEnabled);
               }}
-              title={isSpeechEnabled ? 'Mute AI voice' : 'Enable AI voice output'}
+              title={isSpeechEnabled ? 'Mute AI voice (आवाज़ बंद)' : 'Enable AI voice (आवाज़ चालू)'}
               className={`p-2 rounded-xl border transition-all ${
                 isSpeechEnabled
                   ? 'bg-white/25 text-white border-white/40'
@@ -420,11 +531,11 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                       <div className="mt-2 pt-2 border-t border-stone-100 dark:border-stone-700/60 flex items-center justify-end">
                         <button
                           onClick={() => speakText(m.text)}
-                          className="flex items-center gap-1 text-[11px] text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium"
-                          title="Listen again"
+                          className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+                          title="Listen in voice"
                         >
-                          <Volume2 className="w-3 h-3" />
-                          <span>सुनें / Listen</span>
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>🔊 आवाज़ में सुनें (Speak)</span>
                         </button>
                       </div>
                     )}
@@ -436,7 +547,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
                           <Package className="w-4 h-4 text-emerald-600" />
-                          <span>🎙️ Voice Action: Add to Farm Catalog</span>
+                          <span>🎙️ वॉइस एक्शन: इन्वेंटरी में जोड़ें</span>
                         </div>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
                           {m.action.data.category}
@@ -484,7 +595,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                           {executingActionIdx === idx ? (
                             <>
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Adding to Catalog...</span>
+                              <span>जोड़ा जा रहा है...</span>
                             </>
                           ) : (
                             <>
@@ -506,7 +617,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                       }}
                       className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all shadow-sm"
                     >
-                      <span>Go to {m.action.target?.toUpperCase()} Section</span>
+                      <span>{m.action.target?.toUpperCase()} अनुभाग खोलें</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -521,7 +632,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                       className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-semibold border border-amber-200 dark:border-amber-800 transition-all shadow-sm"
                     >
                       <Scale className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Open Mandi Price Calculator (मंडी भाव खोलें)</span>
+                      <span>मंडी भाव कैलकुलेटर खोलें</span>
                     </button>
                   )}
                 </div>
@@ -545,7 +656,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
               </div>
               <div className="flex-1">
                 <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                  <span>🎙️ सुनने के लिए तैयार... बोलिए (Listening...)</span>
+                  <span>🎙️ हिंदी में बोलिए (Listening in Hindi...)</span>
                   <span className="text-[10px] text-red-500 font-extrabold uppercase">LIVE REC</span>
                 </div>
                 <div className="text-xs text-stone-600 dark:text-stone-300 italic">
@@ -556,7 +667,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
                 onClick={stopListening}
                 className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
               >
-                Stop
+                बंद करें / Stop
               </button>
             </div>
           )}
@@ -564,7 +675,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggestion Chips */}
+        {/* Suggestion Chips in Hindi */}
         <div className="px-3 py-2 bg-stone-100 dark:bg-stone-800/80 border-t border-stone-200 dark:border-stone-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {samplePrompts.map((s, idx) => (
             <button
@@ -582,7 +693,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
           {/* Microphone button */}
           <button
             onClick={isListening ? stopListening : startListening}
-            title={isListening ? 'Stop listening' : 'Speak your question or voice command'}
+            title={isListening ? 'Stop listening' : 'हिंदी या इंग्लिश में बोलकर पूछें'}
             className={`p-3 rounded-2xl transition-all relative ${
               isListening
                 ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 ring-4 ring-red-400/40 animate-pulse'
@@ -598,9 +709,9 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={
-              language === 'hi'
-                ? 'बोलकर पूछें या टाइप करें (उदा: 50 किलो आलू 25 रुपये में जोड़ो)...'
-                : 'Speak or type (e.g., "Add 50 kg Potatoes at ₹25")...'
+              voiceLang === 'hi-IN'
+                ? 'हिंदी में बोलकर पूछें (उदा: 50 किलो आलू 25 रुपये में जोड़ो)...'
+                : 'Speak or type in English...'
             }
             className="flex-1 px-3.5 py-2.5 rounded-2xl text-xs sm:text-[13px] border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
